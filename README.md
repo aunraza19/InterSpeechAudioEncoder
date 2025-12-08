@@ -1,6 +1,6 @@
 # xares-audio-encoder-template
 
-This repository provides a template for creating audio encoders compatible with [X-ARES: the eXtensive Audio Representation and Evaluation Suite](https://github.com/jimbozhang/xares). Your encoder should process raw audio waveforms and generate meaningful audio embeddings.
+This repository provides a template for creating audio encoders compatible with [X-ARES](https://github.com/jimbozhang/xares) and [XARES-LLM](https://github.com/xiaomi-research/xares-llm). Your encoder should process raw audio waveforms and generate meaningful audio embeddings.
 
 ## Steps to create your own audio encoder
 
