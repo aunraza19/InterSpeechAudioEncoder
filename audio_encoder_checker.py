@@ -1,62 +1,86 @@
 import torch
+import inspect
+from typing import Sequence
 from loguru import logger
 
 
-def check_audio_encoder(encoder: torch.nn.Module):
-    if not type(encoder).__name__.endswith("Encoder"):
-        logger.error("Class name must end with 'Encoder'")
-        return False
+class EncoderValidationError(Exception):
+    """Custom exception raised for invalid audio encoder structure or output."""
 
+    pass
+
+def check_audio_encoder(encoder):
+    device = list(encoder.parameters())[0].device
     if not isinstance(encoder, torch.nn.Module):
-        logger.error(f"Expected torch.nn.Module for encoder, got {type(encoder)}")
-        return False
+        raise EncoderValidationError(f"Expected torch.nn.Module for encoder, got {type(encoder)}")
 
     if not hasattr(encoder, "output_dim"):
-        logger.error("Encoder must have a 'output_dim' attribute")
-        return False
+        raise EncoderValidationError("Encoder must have a 'output_dim' attribute")
 
-    if not hasattr(encoder, "sampling_rate"):
-        logger.error("Encoder must have a 'sampling_rate' attribute")
-        return False
+    if not check_supports_two_args(encoder.forward):
+        raise EncoderValidationError("Encoder forward needs to accept two arguments: (audio, attention_mask)")
 
-    if not hasattr(encoder, "hop_size_in_ms"):
-        logger.error("Encoder must have a 'hop_size_in_ms' attribute")
-        print(
-            """
-            hop_size_in_ms determines the time shift (in milliseconds) between consecutive frames in the encoded output.
-
-            For example:
-            - If input size is (B=1, T=50000) and output size is (B=1, T'=78, D), with a sampling rate of 16000 Hz:
-            - Input duration = 50000 / 16000 = 3125 ms.
-            - hop_size_in_ms ≈ 3125 / 78 ≈ 40 ms.
-            - This means the encoder shifts 40 ms forward for each frame.
-
-            It directly impacts the relationship between input length and output frames.
-            """
-        )
-        return False
-
-    sample_audio = torch.randn(2, 50000)
+    sample_audio = torch.randn(3, 50000, device=device)
     try:
-        encoded_audio = encoder(sample_audio)
+        result = encoder(sample_audio, None)
+        is_sequence = isinstance(result, Sequence) and not isinstance(result, (str, bytes))
+        if not is_sequence or len(result) != 2:
+            # If the format is wrong, log a specific error
+            raise EncoderValidationError(
+                f"Expected encoder to return a 2-element tuple or list,but got type {type(result).__name__}.\nCheck your encoder to return (embeddings, attention_mask)"
+            )
+        encoded_audio, attention_mask = result
     except Exception as e:
-        logger.error(f"Failed to encode the sample audio: {e}")
-        return False
+        raise EncoderValidationError(f"Failed to encode the sample audio: {e}")
 
     if not isinstance(encoded_audio, torch.Tensor):
-        logger.error(f"Expected tensor for encoded_audio, got {type(encoded_audio)}")
-        return False
+        raise EncoderValidationError(f"Expected tensor for encoded_audio, got {type(encoded_audio)}")
+
+    if attention_mask is not None and not isinstance(attention_mask, torch.Tensor):
+        raise EncoderValidationError(f"Expected tensor for attention_mask, got {type(encoded_audio)}")
 
     if encoded_audio.ndim != 3:  # [B, T, D]
-        logger.error(f"Expected 3D tensor [B, T, D] for encoded_audio, got {encoded_audio.dim()}D tensor")
-        return False
+        raise EncoderValidationError(
+            f"Expected 3D tensor [B, T, D] for encoded_audio, got {encoded_audio.dim()}D tensor"
+        )
+
+    if attention_mask is not None and attention_mask.ndim != 2:  # [B, T]
+        raise EncoderValidationError(
+            f"Expected 2D tensor [B, T] for attention_mask, got {attention_mask.dim()}D tensor"
+        )
 
     if encoded_audio.size(0) != sample_audio.size(0):
-        logger.error(f"Expected batch size={sample_audio.size(0)} for encoded_audio, got {encoded_audio.size(0)}")
-        return False
+        raise EncoderValidationError(
+            f"Expected batch size={sample_audio.size(0)} for encoded_audio, got {encoded_audio.size(0)}"
+        )
 
     if encoded_audio.size(2) != encoder.output_dim:
-        logger.error(f"Expected output_dim={encoder.output_dim} for encoded_audio, got {encoded_audio.size(2)}")
+        raise EncoderValidationError(
+            f"Expected output_dim={encoder.output_dim} for encoded_audio, got {encoded_audio.size(2)}"
+        )
+
+
+def check_supports_two_args(func):
+    """Checks if a callable requires or accepts exactly two positional arguments."""
+    try:
+        sig = inspect.signature(func)
+    except ValueError:
+        logger.exception(f"Cannot inspect signature for {func.__name__}")
         return False
 
-    return True
+    num_positional_args = 0
+    has_var_args = False  # Checks for *args
+
+    for param in sig.parameters.values():
+        if param.kind in (param.POSITIONAL_ONLY, param.POSITIONAL_OR_KEYWORD):
+            # Check for arguments that must be supplied positionally
+            if param.default is inspect.Parameter.empty:
+                num_positional_args += 1
+            else:
+                num_positional_args += 1
+        elif param.kind == param.VAR_POSITIONAL:
+            # If *args is present, it can accept any number of extra positional arguments
+            has_var_args = True
+    if num_positional_args >= 2 or (has_var_args and num_positional_args <= 2):
+        return True
+    return False
