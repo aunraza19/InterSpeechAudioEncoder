@@ -27,5 +27,5 @@ This repository provides a template for creating audio encoders compatible with 
     >>> encoder = MyEncoder()
 
     >>> check_audio_encoder(encoder)
-    True
+    # No errors! All good!
     ```
