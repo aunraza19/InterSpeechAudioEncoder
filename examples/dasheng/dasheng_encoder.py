@@ -1,5 +1,5 @@
 import torch
-from dasheng import dasheng_base
+from transformers import AutoModel, AutoFeatureExtractor
 
 
 class DashengBaseEncoder(torch.nn.Module):
