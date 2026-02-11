@@ -2,20 +2,17 @@ import torch
 from dasheng import dasheng_base
 
 
-class DashengEncoder(torch.nn.Module):
-    def __init__(self):
+class DashengBaseEncoder(torch.nn.Module):
+    def __init__(self, model_name="mispeech/dasheng-base"):
         super().__init__()
-        self.sampling_rate = 16000
-        self.output_dim = 768
-        self.hop_size_in_ms = 40
-        self.model = dasheng_base()
+        self.processor = AutoFeatureExtractor.from_pretrained(model_name, trust_remote_code=True)
+        self.model = AutoModel.from_pretrained(model_name, trust_remote_code=True)
+        self.output_dim = self.model.config.encoder_kwargs["embed_dim"]
 
-    def forward(self, audio: torch.Tensor):
+    def forward(self, audio: torch.Tensor, audio_attention_mask=None) -> tuple[torch.Tensor, torch.Tensor | None]:
+        assert isinstance(audio, torch.Tensor)
         if audio.ndim == 1:
             audio = audio.unsqueeze(0)
-
-        self.model.eval()
-        with torch.inference_mode():
-            encoded_audio = self.model(audio)
-
-        return encoded_audio
+        features = self.processor(audio, return_tensors="pt")
+        output = self.model(**features).hidden_states
+        return output, None
