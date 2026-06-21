@@ -1,31 +1,39 @@
-# xares-audio-encoder-template
+# Quad-Core Hybrid Encoder (QCHE)   
+**Interspeech 2026 Audio Encoder Capability Challenge Submission**
 
-This repository provides a template for creating audio encoders compatible with [X-ARES](https://github.com/jimbozhang/xares) and [XARES-LLM](https://github.com/xiaomi-research/xares-llm). Your encoder should process raw audio waveforms and generate meaningful audio embeddings.
+This repository contains the implementation of the **Quad-Core Hybrid Encoder (QCHE)**, a lightweight representation model designed for Interspeech 2026.  
+Our model utilizes a **Convolutional-Transformer hybrid architecture** to achieve high-fidelity audio embeddings (128-dimensional) optimized for downstream **Large Audio Language Models (LALMs)**.
 
-## Steps to create your own audio encoder
+---
 
-1. Install dependencies
+## 1. Key Features
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+- **Architecture:**  
+  4-stage 1D-CNN temporal compressor followed by a 6-layer Transformer Encoder.
 
-1. Make a copy of `template.py`.
+- **Temporal Resolution:**  
+  25 Hz (40 ms hop size), aligning with competition standards.
 
-    ```bash
-    cp template.py my_encoder.py
-    ```
+- **Efficiency:**  
+  Approximately 3.5M parameters, designed to run under the 24 GB VRAM constraint.
 
-1. Edit the newly created file to implement your own audio encoder.
+- **Performance:**  
+  Achieved approximately **97.5% Log-Mel Cosine Similarity** on speech reconstruction tasks.
 
-1. Check your encoder to make sure it is compatible with X-ARES.
+---
 
-    ```python
-    >>> from audio_encoder_checker import check_audio_encoder
-    >>> from my_encoder import MyEncoder
+## 2. Dataset Composition: *"The Quad-Core Mix"*
 
-    >>> encoder = MyEncoder()
+Our model was trained on a balanced curriculum of four publicly accessible datasets to ensure robust generalization across:
 
-    >>> check_audio_encoder(encoder)
-    # No errors! All good!
-    ```
+- **Track A:** Classification  
+- **Track B:** Understanding
+
+| Source               | Weight | Role            | Dataset Description                          |
+|----------------------|--------|------------------|----------------------------------------------|
+| Emilia-YODAS         | 40%    | Foundation       | Diverse speech data for accent invariance.   |
+| LibriSpeech          | 30%    | Precision        | High-fidelity phoneme representations.       |
+| ESC-50               | 15%    | Event Detection  | Environmental sound classification features.|
+| Zenodo (King-ASR)    | 15%    | Ambience         | Robustness against background noise.         |
+
+---
