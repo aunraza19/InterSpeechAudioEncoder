@@ -6,7 +6,23 @@ Our model utilizes a **Convolutional-Transformer hybrid architecture** to achiev
 
 ---
 
-## 1. Key Features
+## 1. Model Weights
+
+The trained checkpoint is not stored in this repository because it exceeds GitHub's file-size limit. You can download it from Google Drive here:
+
+[Download `best_model.pth`](https://drive.google.com/file/d/1tvrCRhHF30KlZ3eHZk6LwjXXm2MPzODI/view?usp=sharing)
+
+### Install the model
+
+1. Download the file from the link above.
+2. Save it in the root of this repository.
+3. Rename the file to `best_model.pth`.
+
+The encoder loads weights from `best_model.pth` by default, so no code changes are needed if the file is placed in the project root. If you want to use a different location, pass a custom path when creating `MyEncoder`.
+
+---
+
+## 2. Key Features
 
 - **Architecture:**  
   4-stage 1D-CNN temporal compressor followed by a 6-layer Transformer Encoder.
@@ -20,9 +36,10 @@ Our model utilizes a **Convolutional-Transformer hybrid architecture** to achiev
 - **Performance:**  
   Achieved approximately **97.5% Log-Mel Cosine Similarity** on speech reconstruction tasks.
 
+
 ---
 
-## 2. Dataset Composition: *"The Quad-Core Mix"*
+## 3. Dataset Composition: *"The Quad-Core Mix"*
 
 Our model was trained on a balanced curriculum of four publicly accessible datasets to ensure robust generalization across:
 
